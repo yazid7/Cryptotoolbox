@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecurePass - أدوات الأمان المتقدم</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --accent: #e74c3c;
+            --light: #ecf0f1;
+            --dark: #2c3e50;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, var(--primary), var(--dark));
+        }
+        
+        .section-title {
+            border-right: 5px solid var(--secondary);
+            padding-right: 15px;
+            margin: 30px 0;
+            color: var(--primary);
+        }
+        
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            border: none;
+            transition: transform 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, var(--primary), var(--dark));
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+        }
+        
+        .btn-primary {
+            background-color: var(--secondary);
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary);
+        }
+        
+        .feature-icon {
+            font-size: 1.2rem;
+            margin-left: 5px;
+        }
+        
+        .password-strength-meter {
+            height: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            background-color: #eee;
+        }
+        
+        .strength-weak { background: linear-gradient(to right, #e74c3c, #e74c3c); width: 25%; }
+        .strength-fair { background: linear-gradient(to right, #f39c12, #f39c12); width: 50%; }
+        .strength-good { background: linear-gradient(to right, #3498db, #3498db); width: 75%; }
+        .strength-strong { background: linear-gradient(to right, #2ecc71, #2ecc71); width: 100%; }
+        
+        .nav-pills .nav-link.active {
+            background-color: var(--secondary);
+        }
+        
+        .algorithm-explanation {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+        
+        footer {
+            background: linear-gradient(135deg, var(--primary), var(--dark));
+            color: white;
+            padding: 20px 0;
+            margin-top: 40px;
+        }
+        
+        .cipher-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        
+        .cipher-table th, .cipher-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: right;
+        }
+        
+        .cipher-table th {
+            background-color: var(--secondary);
+            color: white;
+        }
+        
+        .cipher-table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        
+        .tab-content {
+            padding: 20px;
+            border: 1px solid #dee2e6;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+        }
+        
+        .hashed-password {
+            font-family: monospace;
+            word-break: break-all;
+        }
+        
+        .key-display {
+            font-family: monospace;
+            font-size: 0.8rem;
+        }
+        
+        .attempt-counter {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        
+        @media (max-width: 768px) {
+            .section-title {
+                font-size: 1.5rem;
+            }
+            
+            .card-header h5 {
+                font-size: 1.1rem;
+            }
+            
+            .btn {
+                padding: 0.375rem 0.75rem;
+                font-size: 0.9rem;
+            }
+        }
+        
+        .import-keys {
+            border: 2px dashed #ccc;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            margin-bottom: 15px;
+            cursor: pointer;
+        }
+        
+        .import-keys:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .attempt-alert {
+            display: none;
+        }
+
+        /* Unicode Section Styles */
+        .unicode-result {
+            font-size: 1.2rem;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        .safe-url {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .suspicious-url {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .dangerous-url {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .char-info {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-lock"></i> SecurePass
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#password-generator">مولد كلمات المرور</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#file-encryption">تشفير الملفات</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#key-generation">生成密钥</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#ciphers">خوارزميات التشفير</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#unicode-check">فحص Unicode</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="py-5 text-center container">
+        <div class="row py-lg-5">
+            <div class="col-lg-8 col-md-10 mx-auto">
+                <h1 class="fw-light">مجموعة أدوات الأمان المتقدم</h1>
+                <p class="lead text-muted">حل متكامل لتوليد كلمات المرور، التشفير، إدارة المفاتيح، والاتصال الآمن.</p>
+                <p>
+                    <a href="#password-generator" class="btn btn-primary my-2">ابدأ الآن</a>
+                    <a href="#features" class="btn btn-outline-secondary my-2">المزيد من المعلومات</a>
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Password Generator Section -->
+        <section id="password-generator" class="mb-5">
+            <h2 class="section-title">مولد كلمات المرور</h2>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">إنشاء كلمة مرور آمنة</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">طول كلمة المرور</label>
+                                <input type="range" class="form-range" min="8" max="32" value="16" id="lengthSlider">
+                                <div class="d-flex justify-content-between">
+                                    <span>8</span>
+                                    <span id="lengthValue">16</span>
+                                    <span>32</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="uppercaseCheck" checked>
+                                    <label class="form-check-label" for="uppercaseCheck">
+                                        تضمين الأحرف الكبيرة
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="lowercaseCheck" checked>
+                                    <label class="form-check-label" for="lowercaseCheck">
+                                        تضمين الأحرف الصغيرة
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="numbersCheck" checked>
+                                    <label class="form-check-label" for="numbersCheck">
+                                        تضمين الأرقام
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="symbolsCheck">
+                                    <label class="form-check-label" for="symbolsCheck">
+                                        تضمين الرموز
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">عدد كلمات المرور</label>
+                                <input type="number" class="form-control" id="numPasswords" min="1" max="10" value="5">
+                            </div>
+                            
+                            <button class="btn btn-primary w-100" id="generateBtn">
+                                <i class="fas fa-key"></i> إنشاء كلمات المرور
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">كلمات المرور المنشأة</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="password-strength-meter">
+                                <div class="strength-weak d-none" id="strengthMeter"></div>
+                            </div>
+                            <div id="passwordList"></div>
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-start mt-3">
+                                <button class="btn btn-outline-primary" id="copyAllBtn">
+                                    <i class="fas fa-copy"></i> نسخ الكل
+                                </button>
+                                <button class="btn btn-outline-secondary" id="sortBtn">
+                                    <i class="fas fa-sort-alpha-down"></i> ترتيب
+                                </button>
+                                <button class="btn btn-outline-danger" id="deleteAllBtn">
+                                    <i class="fas fa-trash"></i> حذف الكل
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">قوة كلمة المرور ومدة الاختراق</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="strengthResult" class="alert alert-info">
+                                سيتم عرض قوة كلمة المرور هنا.
+                            </div>
+                            <div id="hackingDuration" class="alert alert-warning">
+                                سيظهر تقدير مدة الاختراق هنا.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- File Encryption Section -->
+        <section id="file-encryption" class="mb-5">
+            <h2 class="section-title">تشفير النص</h2>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">تشفير النص</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="encryptionKey" class="form-label">مفتاح التشفير</label>
+                                <input type="password" class="form-control" id="encryptionKey" placeholder="أدخل مفتاح التشفير">
+                            </div>
+                            <div class="mb-3">
+                                <label for="textInput" class="form-label">النص للتشفير</label>
+                                <textarea class="form-control" id="textInput" rows="4" placeholder="أدخل النص للتشفير"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="encryptionAlgorithm" class="form-label">خوارزمية التشفير</label>
+                                <select class="form-select" id="encryptionAlgorithm">
+                                    <option value="aes">AES (معيار التشفير المتقدم)</option>
+                                    <option value="des">Triple DES</option>
+                                    <option value="rabbit">Rabbit</option>
+                                    <option value="rc4">RC4</option>
+                                </select>
+                            </div>
+                            <div class="attempt-counter mb-3" id="encryptAttempts">عدد محاولات التشفير: 0</div>
+                            <button class="btn btn-primary w-100" id="encryptBtn">
+                                <i class="fas fa-lock"></i> تشفير النص
+                            </button>
+                            <div class="mb-3 mt-3">
+                                <label for="encryptedResult" class="form-label">الناتج المشفر</label>
+                                <textarea class="form-control" id="encryptedResult" rows="4" readonly></textarea>
+                                <button class="btn btn-sm btn-outline-secondary mt-2 w-100" id="copyEncryptedBtn">
+                                    <i class="fas fa-copy"></i> نسخ النص المشفر
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">فك تشفير النص</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="decryptionKey" class="form-label">مفتاح فك التشفير</label>
+                                <input type="password" class="form-control" id="decryptionKey" placeholder="أدخل مفتاح فك التشفير">
+                            </div>
+                            <div class="mb-3">
+                                <label for="encryptedTextInput" class="form-label">النص المشفر</label>
+                                <textarea class="form-control" id="encryptedTextInput" rows="4" placeholder="أدخل النص المشفر"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="decryptionAlgorithm" class="form-label">خوارزمية فك التشفير</label>
+                                <select class="form-select" id="decryptionAlgorithm">
+                                    <option value="aes">AES (معيار التشفير المتقدم)</option>
+                                    <option value="des">Triple DES</option>
+                                    <option value="rabbit">Rabbit</option>
+                                    <option value="rc4">RC4</option>
+                                </select>
+                            </div>
+                            <div class="attempt-counter mb-3" id="decryptAttempts">عدد محاولات فك التشفير: 0</div>
+                            <div class="alert alert-danger attempt-alert" id="decryptAlert">
+                                فشلت محاولة فك التشفير. يرجى التحقق من المفتاح والخوارزمية.
+                            </div>
+                            <button class="btn btn-primary w-100" id="decryptBtn">
+                                <i class="fas fa-unlock"></i> فك تشفير النص
+                            </button>
+                            <div class="mb-3 mt-3">
+                                <label for="decryptedResult" class="form-label">الناتج بعد فك التشفير</label>
+                                <textarea class="form-control" id="decryptedResult" rows="4" readonly></textarea>
+                                <button class="btn btn-sm btn-outline-secondary mt-2 w-100" id="copyDecryptedBtn">
+                                    <i class="fas fa-copy"></i> نسخ النص بعد فك التشفير
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Key Generation Section -->
+        <section id="key-generation" class="mb-5">
+            <h2 class="section-title">生成密钥</h2>
+            <div class="row">
+                <div class="col-md-8 mx-auto">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">生成加密密钥</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="keyType" class="form-label">密钥类型</label>
+                                <select class="form-select" id="keyType">
+                                    <option value="aes">AES (256位)</option>
+                                    <option value="rsa">RSA (模拟)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="import-keys" id="importKeysArea">
+                                <i class="fas fa-upload fa-2x mb-2"></i>
+                                <p>拖放密钥文件到这里或点击上传</p>
+                                <input type="file" id="importKeysInput" class="d-none" accept=".txt,.pem,.key">
+                                <button class="btn btn-outline-primary mt-2" id="importKeysBtn">选择文件</button>
+                            </div>
+                            
+                            <button class="btn btn-primary w-100 mb-3" id="generateKeysBtn">
+                                <i class="fas fa-key"></i> 生成密钥
+                            </button>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="publicKey" class="form-label">加密密钥</label>
+                                        <textarea class="form-control key-display" id="publicKey" rows="5" readonly></textarea>
+                                    </div>
+                                    <button class="btn btn-outline-primary w-100" id="downloadPublicKeyBtn">
+                                        <i class="fas fa-download"></i> 下载密钥
+                                    </button>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="privateKey" class="form-label">解密密钥 (如果不同)</label>
+                                        <textarea class="form-control key-display" id="privateKey" rows="5" readonly></textarea>
+                                    </div>
+                                    <button class="btn btn-outline-primary w-100" id="downloadPrivateKeyBtn">
+                                        <i class="fas fa-download"></i> 下载密钥
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Ciphers Section -->
+        <section id="ciphers" class="mb-5">
+            <h2 class="section-title">خوارزميات التشفير</h2>
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">تشفير وفك تشفير الرسائل</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="nav nav-pills mb-3" id="cipherTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="caesar-tab" data-bs-toggle="pill" data-bs-target="#caesar" type="button">شيفرة قيصر</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="morris-tab" data-bs-toggle="pill" data-bs-target="#morris" type="button">شيفرة مورس</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="aes-tab" data-bs-toggle="pill" data-bs-target="#aes" type="button">AES</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="hash-tab" data-bs-toggle="pill" data-bs-target="#hash" type="button">خوارزميات الهاش</button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content" id="cipherTabsContent">
+                        <div class="tab-pane fade show active" id="caesar" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="caesarMessage" class="form-label">الرسالة</label>
+                                        <textarea class="form-control" id="caesarMessage" rows="3" placeholder="أدخل الرسالة"></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="caesarShift" class="form-label">قيمة الإزاحة</label>
+                                        <input type="number" class="form-control" id="caesarShift" value="3" min="1" max="25">
+                                    </div>
+                                    <div class="d-grid gap-2 d-md-flex">
+                                        <button class="btn btn-primary me-md-2" id="encryptCaesarBtn">تشفير</button>
+                                        <button class="btn btn-outline-primary" id="decryptCaesarBtn">فك التشفير</button>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="caesarResult" class="form-label">النتيجة</label>
+                                        <textarea class="form-control" id="caesarResult" rows="3" readonly></textarea>
+                                        <button class="btn btn-sm btn-outline-secondary mt-2 w-100" id="copyCaesarBtn">
+                                            <i class="fas fa-copy"></i> نسخ النتيجة
+                                        </button>
+                                    </div>
+                                    <div class="algorithm-explanation">
+                                        <h6>شرح شيفرة قيصر</h6>
+                                        <p>شيفرة قيصر هي واحدة من تقنيات التشفير الأبسط. تعمل عن طريق إزاحة كل حرف في النص الأصلي بعدد ثابت من المواضع لأسفل أو لأعلى في الأبجدية.</p>
+                                        <p>على سبيل المثال، بإزاحة مقدارها 3: أ → د, ب → ه, ج → و, إلخ.</p>
+                                        <p><strong>القوة:</strong> ضعيفة جدًا، يمكن كسرها بسهولة عن طريق القوة الغاشمة أو تحليل التردد.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="tab-pane fade" id="morris" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="morrisMessage" class="form-label">الرسالة</label>
+                                        <textarea class="form-control" id="morrisMessage" rows="3" placeholder="أدخل الرسالة"></textarea>
+                                    </div>
+                                    <div class="d-grid gap-2 d-md-flex">
+                                        <button class="btn btn-primary me-md-2" id="encryptMorrisBtn">تشفير</button>
+                                        <button class="btn btn-outline-primary" id="decryptMorrisBtn">فك التشفير</button>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="morrisResult" class="form-label">النتيجة</label>
+                                        <textarea class="form-control" id="morrisResult" rows="3" readonly></textarea>
+                                        <button class="btn btn-sm btn-outline-secondary mt-2 w-100" id="copyMorseBtn">
+                                            <i class="fas fa-copy"></i> نسخ النتيجة
+                                        </button>
+                                    </div>
+                                    <div class="algorithm-explanation">
+                                        <h6>شرح شيفرة مورس</h6>
+                                        <p>شيفرة مورس تمثل الأحرف والأرقام باستخدام سلسلة من النقاط والشرط.</p>
+                                        <div style="overflow-x: auto;">
+                                            <table class="cipher-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>الحرف</th>
+                                                        <th>الكود</th>
+                                                        <th>الحرف</th>
+                                                        <th>الكود</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr><td>A</td><td>.-</td><td>N</td><td>-.</td></tr>
+                                                    <tr><td>B</td><td>-...</td><td>O</td><td>---</td></tr>
+                                                    <tr><td>C</td><td>-.-.</td><td>P</td><td>.--.</td></tr>
+                                                    <tr><td>D</td><td>-..</td><td>Q</td><td>--.-</td></tr>
+                                                    <tr><td>E</td><td>.</td><td>R</td><td>.-.</td></tr>
+                                                    <tr><td>F</td><td>..-.</td><td>S</td><td>...</td></tr>
+                                                    <tr><td>G</td><td>--.</td><td>T</td><td>-</td></tr>
+                                                    <tr><td>H</td><td>....</td><td>U</td><td>..-</td></tr>
+                                                    <tr><td>I</td><td>..</td><td>V</td><td>...-</td></tr>
+                                                    <tr><td>J</td><td>.---</td><td>W</td><td>.--</td></tr>
+                                                    <tr><td>K</td><td>-.-</td><td>X</td><td>-..-</td></tr>
+                                                    <tr><td>L</td><td>.-..</td><td>Y</td><td>-.--</td></tr>
+                                                    <tr><td>M</td><td>--</td><td>Z</td><td>--..</td></tr>
+                                                    <tr><td>0</td><td>-----</td><td>5</td><td>.....</td></tr>
+                                                    <tr><td>1</td><td>.----</td><td>6</td><td>-....</td></tr>
+                                                    <tr><td>2</td><td>..---</td><td>7</td><td>--...</td></tr>
+                                                    <tr><td>3</td><td>...--</td><td>8</td><td>---..</td></tr>
+                                                    <tr><td>4</td><td>....-</td><td>9</td><td>----.</td></tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <p><strong>القوة:</strong> ليست طريقة تشفير آمنة، يمكن فكها بسهولة.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="tab-pane fade" id="aes" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="aesMessage" class="form-label">الرسالة</label>
+                                        <textarea class="form-control" id="aesMessage" rows="3" placeholder="أدخل الرسالة"></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="aesKey" class="form-label">المفتاح</label>
+                                        <input type="password" class="form-control" id="aesKey" placeholder="أدخل مفتاح التشفير">
+                                    </div>
+                                    <div class="d-grid gap-2 d-md-flex">
+                                        <button class="btn btn-primary me-md-2" id="encryptAesBtn">تشفير</button>
+                                        <button class="btn btn-outline-primary" id="decryptAesBtn">فك التشفير</button>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="aesResult" class="form-label">النتيجة</label>
+                                        <textarea class="form-control" id="aesResult" rows="3" readonly></textarea>
+                                        <button class="btn btn-sm btn-outline-secondary mt-2 w-100" id="copyAesBtn">
+                                            <i class="fas fa-copy"></i> نسخ النتيجة
+                                        </button>
+                                    </div>
+                                    <div class="algorithm-explanation">
+                                        <h6>شرح تشفير AES</h6>
+                                        <p>معيار التشفير المتقدم (AES) هو خوارزمية تشفير متماثلة مستخدمة على نطاق واسع في جميع أنحاء العالم. يعتمد على شبكة استبدال-تبديل وهو فعال في البرامج والأجهزة.</p>
+                                        <p>يعمل AES على أحجام كتل ثابتة من 128 بت ويدعم أحجام مفاتيح 128 و192 و256 بت.</p>
+                                        <p><strong>القوة:</strong> تعتبر آمنة للغاية وهي المعيار للعديد من التطبيقات الحكومية والمالية.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="tab-pane fade" id="hash" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="hashMessage" class="form-label">الرسالة</label>
+                                        <textarea class="form-control" id="hashMessage" rows="3" placeholder="أدخل النص للتجزئة"></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="hashAlgorithm" class="form-label">خوارزمية التجزئة</label>
+                                        <select class="form-select" id="hashAlgorithm">
+                                            <option value="md5">MD5</option>
+                                            <option value="sha1">SHA-1</option>
+                                            <option value="sha256">SHA-256</option>
+                                            <option value="sha512">SHA-512</option>
+                                            <option value="sha3">SHA-3</option>
+                                            <option value="ripemd160">RIPEMD-160</option>
+                                        </select>
+                                    </div>
+                                    <button class="btn btn-primary w-100" id="generateHashBtn">
+                                        إنشاء التجزئة
+                                    </button>
+                                    <div class="mt-3">
+                                        <label for="compareHash" class="form-label">مقارنة بالتجزئة الأخرى (اختياري)</label>
+                                        <input type="text" class="form-control" id="compareHash" placeholder="أدخل التجزئة للمقارنة">
+                                        <button class="btn btn-outline-primary w-100 mt-2" id="compareHashBtn">
+                                            مقارنة التجزئة
+                                        </button>
+                                        <div id="hashComparisonResult" class="alert alert-info mt-2 d-none"></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="hashResult" class="form-label">نتيجة التجزئة</label>
+                                        <textarea class="form-control hashed-password" id="hashResult" rows="3" readonly></textarea>
+                                        <button class="btn btn-sm btn-outline-secondary mt-2 w-100" id="copyHashBtn">
+                                            <i class="fas fa-copy"></i> نسخ التجزئة
+                                        </button>
+                                    </div>
+                                    <div class="algorithm-explanation">
+                                        <h6>شرح خوارزميات التجزئة</h6>
+                                        <p><strong>MD5:</strong> ينتج قيمة تجزئة طولها 128 بت. كان مستخدمًا على نطاق واسع، لكنه يعتبر الآن معيبًا cryptographically وغير مناسب للاستخدام.</p>
+                                        <p><strong>SHA-1:</strong> ينتج قيمة تجزئة طولها 160 بت. لم يعد يعتبر آمنًا ضد الخصوم ذوي الموارد الكافية.</p>
+                                        <p><strong>SHA-256:</strong> جزء من عائلة SHA-2، ينتج تجزئة طولها 256 بت. يعتبر آمنًا حاليًا ومستخدمًا على نطاق واسع.</p>
+                                        <p><strong>SHA-512:</strong> أيضًا جزء من عائلة SHA-2، ينتج تجزئة طولها 512 بت. أكثر أمانًا من SHA-256 ولكن أبطأ.</p>
+                                        <p><strong>SHA-3:</strong> أحدث معيار تجزئة من NIST، يعتمد على تصميم مختلف عن SHA-2.</p>
+                                        <p><strong>RIPEMD-160:</strong> خوارزمية تجزئة طولها 160 بت، مستخدمة في Bitcoin والعملات المشفرة الأخرى.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Unicode Check Section -->
+        <section id="unicode-check" class="mb-5">
+            <h2 class="section-title">فحص Unicode</h2>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">فحص الروابط المشبوهة</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="urlInput" class="form-label">أدخل الرابط للفحص</label>
+                                <input type="text" class="form-control" id="urlInput" placeholder="https://example.com">
+                            </div>
+                            <button class="btn btn-primary w-100" id="checkUrlBtn">
+                                <i class="fas fa-search"></i> فحص الرابط
+                            </button>
+                            <div id="urlResult" class="unicode-result mt-3 d-none"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">فحص الأحرف Unicode</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="textToCheck" class="form-label">أدخل النص للفحص</label>
+                                <textarea class="form-control" id="textToCheck" rows="3" placeholder="أدخل النص لفحص أحرف Unicode"></textarea>
+                            </div>
+                            <button class="btn btn-primary w-100" id="checkTextBtn">
+                                <i class="fas fa-search"></i> فحص النص
+                            </button>
+                            <div id="textResult" class="char-info mt-3 d-none"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center">
+        <div class="container">
+            <p class="mb-0">SecurePass - مجموعة أدوات الأمان المتقدم</p>
+            <p class="mb-0">جميع احتياجاتك الأمنية في مكان واحد</p>
+            <p class="mt-2">
+                <a href="#" class="text-white me-3"><i class="fab fa-github"></i></a>
+                <a href="#" class="text-white me-3"><i class="fab fa-twitter"></i></a>
+                <a href="#" class="text-white"><i class="fab fa-linkedin"></i></a>
+            </p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Initialize attempt counters
+        let encryptAttempts = 0;
+        let decryptAttempts = 0;
+        
+        // Password Generator Functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Update password length value
+            const lengthSlider = document.getElementById('lengthSlider');
+            const lengthValue = document.getElementById('lengthValue');
+            
+            lengthSlider.addEventListener('input', function() {
+                lengthValue.textContent = this.value;
+            });
+            
+            // Generate passwords
+            document.getElementById('generateBtn').addEventListener('click', function() {
+                generatePasswords();
+            });
+            
+            // Copy all passwords
+            document.getElementById('copyAllBtn').addEventListener('click', function() {
+                const passwordElements = document.querySelectorAll('.password-item');
+                const passwords = Array.from(passwordElements).map(el => el.textContent).join('\n');
+                
+                if (passwords) {
+                    navigator.clipboard.writeText(passwords).then(() => {
+                        alert('تم نسخ جميع كلمات المرور إلى الحافظة!');
+                    });
+                }
+            });
+            
+            // Sort passwords
+            document.getElementById('sortBtn').addEventListener('click', function() {
+                const passwordList = document.getElementById('passwordList');
+                const passwords = Array.from(passwordList.children);
+                
+                passwords.sort((a, b) => a.textContent.localeCompare(b.textContent));
+                
+                // Clear the list
+                passwordList.innerHTML = '';
+                
+                // Append sorted passwords
+                passwords.forEach(password => {
+                    passwordList.appendChild(password);
+                });
+            });
+            
+            // Delete all passwords
+            document.getElementById('deleteAllBtn').addEventListener('click', function() {
+                document.getElementById('passwordList').innerHTML = '';
+                document.getElementById('strengthMeter').className = 'strength-weak d-none';
+                document.getElementById('strengthResult').textContent = 'سيتم عرض قوة كلمة المرور هنا.';
+                document.getElementById('hackingDuration').textContent = 'سيظهر تقدير مدة الاختراق هنا.';
+            });
+            
+            // Check password leak
+            document.getElementById('checkLeakBtn').addEventListener('click', function() {
+                const password = document.getElementById('passwordToCheck').value;
+                const leakResult = document.getElementById('leakResult');
+                
+                if (!password) {
+                    leakResult.textContent = 'الرجاء إدخال كلمة مرور للفحص.';
+                    leakResult.className = 'alert alert-danger mt-3';
+                    leakResult.classList.remove('d-none');
+                    return;
+                }
+                
+                // Simulate leak check (in a real application, this would be an API call)
+                const isLeaked = Math.random() > 0.7;
+                
+                if (isLeaked) {
+                    leakResult.textContent = 'تحذير: تم العثور على كلمة المرور هذه في خروقات البيانات! يجب تغييرها فورًا.';
+                    leakResult.className = 'alert alert-danger mt-3';
+                } else {
+                    leakResult.textContent = 'أخبار جيدة! لم يتم العثور على كلمة المرور هذه في أي خروقات بيانات معروفة.';
+                    leakResult.className = 'alert alert-success mt-3';
+                }
+                
+                leakResult.classList.remove('d-none');
+            });
+            
+            // Hash generation
+            document.getElementById('generateHashBtn').addEventListener('click', function() {
+                const message = document.getElementById('hashMessage').value;
+                const algorithm = document.getElementById('hashAlgorithm').value;
+                
+                if (!message) {
+                    alert('الرجاء إدخال نص للتجزئة.');
+                    return;
+                }
+                
+                let hash;
+                switch(algorithm) {
+                    case 'md5':
+                        hash = 'MD5: ' + CryptoJS.MD5(message);
+                        break;
+                    case 'sha1':
+                        hash = 'SHA1: ' + CryptoJS.SHA1(message);
+                        break;
+                    case 'sha256':
+                        hash = 'SHA256: ' + CryptoJS.SHA256(message);
+                        break;
+                    case 'sha512':
+                        hash = 'SHA512: ' + CryptoJS.SHA512(message);
+                        break;
+                    case 'sha3':
+                        hash = 'SHA3: ' + CryptoJS.SHA3(message, { outputLength: 512 });
+                        break;
+                    case 'ripemd160':
+                        hash = 'RIPEMD160: ' + CryptoJS.RIPEMD160(message);
+                        break;
+                }
+                
+                document.getElementById('hashResult').value = hash;
+            });
+            
+            // Hash comparison
+            document.getElementById('compareHashBtn').addEventListener('click', function() {
+                const originalHash = document.getElementById('hashResult').value;
+                const compareHash = document.getElementById('compareHash').value;
+                const resultDiv = document.getElementById('hashComparisonResult');
+                
+                if (!originalHash) {
+                    alert('الرجاء إنشاء تجزئة أولاً.');
+                    return;
+                }
+                
+                if (!compareHash) {
+                    alert('الرجاء إدخال التجزئة للمقارنة.');
+                    return;
+                }
+                
+                // Extract just the hash value without the algorithm prefix
+                const originalHashValue = originalHash.split(': ')[1] || originalHash;
+                const compareHashValue = compareHash.split(': ')[1] || compareHash;
+                
+                if (originalHashValue === compareHashValue) {
+                    resultDiv.textContent = 'التجزئتان متطابقتان!';
+                    resultDiv.className = 'alert alert-success mt-2';
+                } else {
+                    resultDiv.textContent = 'التجزئتان غير متطابقتين.';
+                    resultDiv.className = 'alert alert-danger mt-2';
+                }
+                
+                resultDiv.classList.remove('d-none');
+            });
+            
+            // AES Encryption
+            document.getElementById('encryptAesBtn').addEventListener('click', function() {
+                const message = document.getElementById('aesMessage').value;
+                const key = document.getElementById('aesKey').value;
+                
+                if (!message) {
+                    alert('الرجاء إدخال رسالة للتشفير.');
+                    return;
+                }
+                
+                if (!key) {
+                    alert('الرجاء إدخال مفتاح تشفير.');
+                    return;
+                }
+                
+                const encrypted = CryptoJS.AES.encrypt(message, key).toString();
+                document.getElementById('aesResult').value = encrypted;
+            });
+            
+            // AES Decryption
+            document.getElementById('decryptAesBtn').addEventListener('click', function() {
+                const message = document.getElementById('aesMessage').value;
+                const key = document.getElementById('aesKey').value;
+                
+                if (!message) {
+                    alert('الرجاء إدخال رسالة لفك التشفير.');
+                    return;
+                }
+                
+                if (!key) {
+                    alert('الرجاء إدخال مفتاح فك التشفير.');
+                    return;
+                }
+                
+                try {
+                    const decrypted = CryptoJS.AES.decrypt(message, key).toString(CryptoJS.enc.Utf8);
+                    
+                    if (!decrypted) {
+                        throw new Error('فشل فك التشفير');
+                    }
+                    
+                    document.getElementById('aesResult').value = decrypted;
+                } catch (error) {
+                    alert('فشل فك التشفير. يرجى التحقق من المفتاح والمحاولة مرة أخرى.');
+                }
+            });
+            
+            // Text Encryption
+            document.getElementById('encryptBtn').addEventListener('click', function() {
+                const text = document.getElementById('textInput').value;
+                const key = document.getElementById('encryptionKey').value;
+                const algorithm = document.getElementById('encryptionAlgorithm').value;
+                
+                if (!text) {
+                    alert('الرجاء إدخال نص للتشفير.');
+                    return;
+                }
+                
+                if (!key) {
+                    alert('الرجاء إدخال مفتاح تشفير.');
+                    return;
+                }
+                
+                let encrypted;
+                if (algorithm === 'aes') {
+                    encrypted = CryptoJS.AES.encrypt(text, key).toString();
+                } else if (algorithm === 'des') {
+                    // Triple DES
+                    encrypted = CryptoJS.TripleDES.encrypt(text, key).toString();
+                } else if (algorithm === 'rabbit') {
+                    encrypted = CryptoJS.Rabbit.encrypt(text, key).toString();
+                } else if (algorithm === 'rc4') {
+                    encrypted = CryptoJS.RC4.encrypt(text, key).toString();
+                }
+                
+                document.getElementById('encryptedResult').value = encrypted;
+                encryptAttempts++;
+                document.getElementById('encryptAttempts').textContent = `عدد محاولات التشفير: ${encryptAttempts}`;
+            });
+            
+            // Text Decryption
+            document.getElementById('decryptBtn').addEventListener('click', function() {
+                const text = document.getElementById('encryptedTextInput').value;
+                const key = document.getElementById('decryptionKey').value;
+                const algorithm = document.getElementById('decryptionAlgorithm').value;
+                
+                if (!text) {
+                    alert('الرجاء إدخال نص لفك التشفير.');
+                    return;
+                }
+                
+                if (!key) {
+                    alert('الرجاء إدخال مفتاح فك التشفير.');
+                    return;
+                }
+                
+                try {
+                    let decrypted;
+                    if (algorithm === 'aes') {
+                        decrypted = CryptoJS.AES.decrypt(text, key).toString(CryptoJS.enc.Utf8);
+                    } else if (algorithm === 'des') {
+                        // Triple DES
+                        decrypted = CryptoJS.TripleDES.decrypt(text, key).toString(CryptoJS.enc.Utf8);
+                    } else if (algorithm === 'rabbit') {
+                        decrypted = CryptoJS.Rabbit.decrypt(text, key).toString(CryptoJS.enc.Utf8);
+                    } else if (algorithm === 'rc4') {
+                        decrypted = CryptoJS.RC4.decrypt(text, key).toString(CryptoJS.enc.Utf8);
+                    }
+                    
+                    if (!decrypted) {
+                        throw new Error('فشل فك التشفير');
+                    }
+                    
+                    document.getElementById('decryptedResult').value = decrypted;
+                    document.getElementById('decryptAlert').style.display = 'none';
+                } catch (error) {
+                    document.getElementById('decryptAlert').style.display = 'block';
+                }
+                
+                decryptAttempts++;
+                document.getElementById('decryptAttempts').textContent = `عدد محاولات فك التشفير: ${decryptAttempts}`;
+            });
+            
+            // Generate keys
+            document.getElementById('generateKeysBtn').addEventListener('click', function() {
+                const keyType = document.getElementById('keyType').value;
+                
+                if (keyType === 'aes') {
+                    // Generate a random AES key
+                    const key = CryptoJS.lib.WordArray.random(32).toString();
+                    document.getElementById('publicKey').value = key;
+                    document.getElementById('privateKey').value = key;
+                } else {
+                    // Simulated RSA keys (not real RSA, just for demonstration)
+                    document.getElementById('publicKey').value = '-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A' + 
+                                    '\nMIIBCgKCAQEAu1SU1LfVLPHCozMxH2Mo' +
+                                    '\n4lgOEePzNm0tRgeLezV6ffAt0gunVTLw' +
+                                    '\neronfV04+I+2pC+uJ+6QZz7shJXllyq' +
+                                    '\n-----END PUBLIC KEY-----';
+                    document.getElementById('privateKey').value = '-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASC' +
+                                     '\nAScwggEjAgEAAoIBAQC7VJTUt9Us8cKj' +
+                                     '\nMzEfYyjiWA4R4/M2bS1GB4t7NXp98C3S' +
+                                     '\nC6dVMvB6uid9XTj4j7akL64n7pBnPuyE' +
+                                     '\n-----END PRIVATE KEY-----';
+                }
+            });
+            
+            // Import keys
+            document.getElementById('importKeysBtn').addEventListener('click', function() {
+                document.getElementById('importKeysInput').click();
+            });
+            
+            document.getElementById('importKeysInput').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const content = e.target.result;
+                        // Try to detect if it's a public or private key
+                        if (content.includes('PUBLIC')) {
+                            document.getElementById('publicKey').value = content;
+                        } else if (content.includes('PRIVATE')) {
+                            document.getElementById('privateKey').value = content;
+                        } else {
+                            // If we can't determine, put it in both
+                            document.getElementById('publicKey').value = content;
+                            document.getElementById('privateKey').value = content;
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            });
+            
+            // Download public key
+            document.getElementById('downloadPublicKeyBtn').addEventListener('click', function() {
+                const publicKey = document.getElementById('publicKey').value;
+                
+                if (!publicKey) {
+                    alert('الرجاء إنشاء مفتاح أولاً.');
+                    return;
+                }
+                
+                const blob = new Blob([publicKey], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'encryption_key.txt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+            
+            // Download private key
+            document.getElementById('downloadPrivateKeyBtn').addEventListener('click', function() {
+                const privateKey = document.getElementById('privateKey').value;
+                
+                if (!privateKey) {
+                    alert('الرجاء إنشاء مفتاح أولاً.');
+                    return;
+                }
+                
+                const blob = new Blob([privateKey], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'decryption_key.txt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+            
+            // Caesar Cipher Implementation
+            document.getElementById('encryptCaesarBtn').addEventListener('click', function() {
+                const message = document.getElementById('caesarMessage').value;
+                const shift = parseInt(document.getElementById('caesarShift').value);
+                
+                if (!message) {
+                    alert('الرجاء إدخال رسالة للتشفير.');
+                    return;
+                }
+                
+                let result = '';
+                for (let i = 0; i < message.length; i++) {
+                    let char = message[i];
+                    
+                    if (char.match(/[a-z]/i)) {
+                        const code = message.charCodeAt(i);
+                        
+                        // Uppercase letters
+                        if (code >= 65 && code <= 90) {
+                            char = String.fromCharCode(((code - 65 + shift) % 26) + 65);
+                        }
+                        // Lowercase letters
+                        else if (code >= 97 && code <= 122) {
+                            char = String.fromCharCode(((code - 97 + shift) % 26) + 97);
+                        }
+                    }
+                    
+                    result += char;
+                }
+                
+                document.getElementById('caesarResult').value = result;
+            });
+            
+            document.getElementById('decryptCaesarBtn').addEventListener('click', function() {
+                const message = document.getElementById('caesarMessage').value;
+                const shift = parseInt(document.getElementById('caesarShift').value);
+                
+                if (!message) {
+                    alert('الرجاء إدخال رسالة لفك التشفير.');
+                    return;
+                }
+                
+                // Decryption is just encryption with a negative shift
+                document.getElementById('caesarShift').value = (26 - shift) % 26;
+                document.getElementById('encryptCaesarBtn').click();
+                document.getElementById('caesarShift').value = shift;
+            });
+            
+            // Morse Code Implementation
+            document.getElementById('encryptMorrisBtn').addEventListener('click', function() {
+                const message = document.getElementById('morrisMessage').value.toUpperCase();
+                
+                if (!message) {
+                    alert('الرجاء إدخال رسالة للتشفير.');
+                    return;
+                }
+                
+                const morseMap = {
+                    'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..', 'E': '.', 
+                    'F': '..-.', 'G': '--.', 'H': '....', 'I': '..', 'J': '.---', 
+                    'K': '-.-', 'L': '.-..', 'M': '--', 'N': '-.', 'O': '---', 
+                    'P': '.--.', 'Q': '--.-', 'R': '.-.', 'S': '...', 'T': '-', 
+                    'U': '..-', 'V': '...-', 'W': '.--', 'X': '-..-', 'Y': '-.--', 
+                    'Z': '--..', '0': '-----', '1': '.----', '2': '..---', '3': '...--', 
+                    '4': '....-', '5': '.....', '6': '-....', '7': '--...', '8': '---..', 
+                    '9': '----.', ' ': '/', '.': '.-.-.-', ',': '--..--', '?': '..--..',
+                    "'": '.----.', '!': '-.-.--', '/': '-..-.', '(': '-.--.', ')': '-.--.-',
+                    '&': '.-...', ':': '---...', ';': '-.-.-.', '=': '-...-', '+': '.-.-.',
+                    '-': '-....-', '_': '..--.-', '"': '.-..-.', '$': '...-..-', '@': '.--.-.'
+                };
+                
+                let result = '';
+                for (let i = 0; i < message.length; i++) {
+                    const char = message[i];
+                    if (morseMap[char]) {
+                        result += morseMap[char] + ' ';
+                    } else {
+                        result += char + ' ';
+                    }
+                }
+                
+                document.getElementById('morrisResult').value = result.trim();
+            });
+            
+            document.getElementById('decryptMorrisBtn').addEventListener('click', function() {
+                const message = document.getElementById('morrisMessage').value;
+                
+                if (!message) {
+                    alert('الرجاء إدخال رسالة لفك التشفير.');
+                    return;
+                }
+                
+                const reverseMorseMap = {
+                    '.-': 'A', '-...': 'B', '-.-.': 'C', '-..': 'D', '.': 'E', 
+                    '..-.': 'F', '--.': 'G', '....': 'H', '..': 'I', '.---': 'J', 
+                    '-.-': 'K', '.-..': 'L', '--': 'M', '-.': 'N', '---': 'O', 
+                    '.--.': 'P', '--.-': 'Q', '.-.': 'R', '...': 'S', '-': 'T', 
+                    '..-': 'U', '...-': 'V', '.--': 'W', '-..-': 'X', '-.--': 'Y', 
+                    '--..': 'Z', '-----': '0', '.----': '1', '..---': '2', '...--': '3', 
+                    '....-': '4', '.....': '5', '-....': '6', '--...': '7', '---..': '8', 
+                    '----.': '9', '/': ' ', '.-.-.-': '.', '--..--': ',', '..--..': '?',
+                    '.----.': "'", '-.-.--': '!', '-..-.': '/', '-.--.': '(', '-.--.-': ')',
+                    '.-...': '&', '---...': ':', '-.-.-.': ';', '-...-': '=', '.-.-.': '+',
+                    '-....-': '-', '..--.-': '_', '.-..-.': '"', '...-..-': '$', '.--.-.': '@'
+                };
+                
+                const words = message.split(' ');
+                let result = '';
+                
+                for (let i = 0; i < words.length; i++) {
+                    const code = words[i];
+                    if (reverseMorseMap[code]) {
+                        result += reverseMorseMap[code];
+                    } else {
+                        result += code;
+                    }
+                }
+                
+                document.getElementById('morrisResult').value = result;
+            });
+            
+            // Copy buttons
+            document.getElementById('copyEncryptedBtn').addEventListener('click', function() {
+                const text = document.getElementById('encryptedResult').value;
+                if (text) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        alert('تم نسخ النص المشفر إلى الحافظة!');
+                    });
+                }
+            });
+            
+            document.getElementById('copyDecryptedBtn').addEventListener('click', function() {
+                const text = document.getElementById('decryptedResult').value;
+                if (text) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        alert('تم نسخ النص بعد فك التشفير إلى الحافظة!');
+                    });
+                }
+            });
+            
+            document.getElementById('copyCaesarBtn').addEventListener('click', function() {
+                const text = document.getElementById('caesarResult').value;
+                if (text) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        alert('تم نسخ النتيجة إلى الحافظة!');
+                    });
+                }
+            });
+            
+            document.getElementById('copyMorseBtn').addEventListener('click', function() {
+                const text = document.getElementById('morrisResult').value;
+                if (text) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        alert('تم نسخ النتيجة إلى الحافظة!');
+                    });
+                }
+            });
+            
+            document.getElementById('copyAesBtn').addEventListener('click', function() {
+                const text = document.getElementById('aesResult').value;
+                if (text) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        alert('تم نسخ النتيجة إلى الحافظة!');
+                    });
+                }
+            });
+            
+            document.getElementById('copyHashBtn').addEventListener('click', function() {
+                const text = document.getElementById('hashResult').value;
+                if (text) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        alert('تم نسخ التجزئة إلى الحافظة!');
+                    });
+                }
+            });
+            
+            // Unicode URL Check
+            document.getElementById('checkUrlBtn').addEventListener('click', function() {
+                const url = document.getElementById('urlInput').value;
+                const resultDiv = document.getElementById('urlResult');
+                
+                if (!url) {
+                    alert('الرجاء إدخال رابط للفحص.');
+                    return;
+                }
+                
+                // Check for suspicious Unicode characters in URL
+                const suspiciousChars = /[^\x00-\x7F]/;
+                const hasSuspiciousChars = suspiciousChars.test(url);
+                
+                // Check for URL encoding issues
+                const hasEncoding = /%[0-9A-Fa-f]{2}/.test(url);
+                
+                // Check for homograph attack patterns (common in phishing)
+                const homographPatterns = [
+                    /а/g, // Cyrillic 'a'
+                    /е/g, // Cyrillic 'e'
+                    /і/g, // Cyrillic 'i'
+                    /о/g, // Cyrillic 'o'
+                    /с/g  // Cyrillic 'c'
+                ];
+                
+                let homographCount = 0;
+                homographPatterns.forEach(pattern => {
+                    const matches = url.match(pattern);
+                    if (matches) homographCount += matches.length;
+                });
+                
+                if (hasSuspiciousChars || homographCount > 2) {
+                    resultDiv.textContent = 'تحذير: هذا الرابط يحتوي على أحرف مشبوهة وقد يكون محاولة تصيد!';
+                    resultDiv.className = 'unicode-result dangerous-url';
+                } else if (hasEncoding || homographCount > 0) {
+                    resultDiv.textContent = 'تنبيه: هذا الرابط يحتوي على بعض الأحرف غير المعتادة. كن حذرًا.';
+                    resultDiv.className = 'unicode-result suspicious-url';
+                } else {
+                    resultDiv.textContent = 'يبدو هذا الرابط آمنًا من حيث أحرف Unicode.';
+                    resultDiv.className = 'unicode-result safe-url';
+                }
+                
+                resultDiv.classList.remove('d-none');
+            });
+            
+            // Unicode Text Check
+            document.getElementById('checkTextBtn').addEventListener('click', function() {
+                const text = document.getElementById('textToCheck').value;
+                const resultDiv = document.getElementById('textResult');
+                
+                if (!text) {
+                    alert('الرجاء إدخال نص للفحص.');
+                    return;
+                }
+                
+                let resultHTML = '<h6>تفاصيل الأحرف:</h6><ul>';
+                let suspiciousCount = 0;
+                
+                for (let i = 0; i < text.length; i++) {
+                    const char = text[i];
+                    const code = text.charCodeAt(i);
+                    const hex = code.toString(16).toUpperCase();
+                    
+                    let status = 'آمن';
+                    let statusClass = 'text-success';
+                    
+                    // Check for suspicious Unicode ranges
+                    if (code > 127) {
+                        // Check for homoglyphs in common phishing ranges
+                        if ((code >= 0x0400 && code <= 0x04FF) || // Cyrillic
+                            (code >= 0x0600 && code <= 0x06FF) || // Arabic
+                            (code >= 0x0900 && code <= 0x097F) || // Devanagari
+                            (code >= 0x3000 && code <= 0x303F)) { // CJK symbols
+                            status = 'مشبوه';
+                            statusClass = 'text-danger';
+                            suspiciousCount++;
+                        } else {
+                            status = 'غير ASCII';
+                            statusClass = 'text-warning';
+                        }
+                    }
+                    
+                    resultHTML += `<li>الحرف: '${char}' | الكود: U+${hex.padStart(4, '0')} | الحالة: <span class="${statusClass}">${status}</span></li>`;
+                }
+                
+                resultHTML += '</ul>';
+                
+                if (suspiciousCount > 0) {
+                    resultHTML += `<div class="alert alert-danger mt-2">تحذير: تم العثور على ${suspiciousCount} أحرف مشبوهة قد تستخدم في هجمات التصيد!</div>`;
+                } else {
+                    resultHTML += '<div class="alert alert-success mt-2">جميع الأحرف تبدو آمنة.</div>';
+                }
+                
+                resultDiv.innerHTML = resultHTML;
+                resultDiv.classList.remove('d-none');
+            });
+        });
+        
+        function generatePasswords() {
+            const length = document.getElementById('lengthSlider').value;
+            const includeUppercase = document.getElementById('uppercaseCheck').checked;
+            const includeLowercase = document.getElementById('lowercaseCheck').checked;
+            const includeNumbers = document.getElementById('numbersCheck').checked;
+            const includeSymbols = document.getElementById('symbolsCheck').checked;
+            const numPasswords = document.getElementById('numPasswords').value;
+            
+            const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+            const numbers = '0123456789';
+            const symbols = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+            
+            let characters = '';
+            if (includeUppercase) characters += uppercase;
+            if (includeLowercase) characters += lowercase;
+            if (includeNumbers) characters += numbers;
+            if (includeSymbols) characters += symbols;
+            
+            if (characters === '') {
+                alert('الرجاء تحديد نوع حرف واحد على الأقل!');
+                return;
+            }
+            
+            const passwordList = document.getElementById('passwordList');
+            passwordList.innerHTML = '';
+            
+            let strongestPassword = '';
+            let maxStrength = -1;
+            
+            for (let i = 0; i < numPasswords; i++) {
+                let password = '';
+                for (let j = 0; j < length; j++) {
+                    password += characters.charAt(Math.floor(Math.random() * characters.length));
+                }
+                
+                const strength = calculatePasswordStrength(password);
+                if (strength > maxStrength) {
+                    maxStrength = strength;
+                    strongestPassword = password;
+                }
+                
+                const passwordElement = document.createElement('div');
+                passwordElement.className = 'password-item d-flex justify-content-between align-items-center mb-2';
+                passwordElement.innerHTML = `
+                    <span>${password}</span>
+                    <div>
+                        <button class="btn btn-sm btn-outline-primary copy-btn" data-password="${password}">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger delete-btn">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                
+                passwordList.appendChild(passwordElement);
+            }
+            
+            // Add event listeners to copy and delete buttons
+            document.querySelectorAll('.copy-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const password = this.getAttribute('data-password');
+                    navigator.clipboard.writeText(password).then(() => {
+                        alert('تم نسخ كلمة المرور إلى الحافظة!');
+                    });
+                });
+            });
+            
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    this.closest('.password-item').remove();
+                });
+            });
+            
+            // Update password strength and hacking duration
+            updatePasswordStrength(strongestPassword);
+        }
+        
+        function calculatePasswordStrength(password) {
+            let strength = 0;
+            
+            // Length factor
+            strength += password.length * 4;
+            
+            // Character variety factors
+            if (/[A-Z]/.test(password)) strength += 10;
+            if (/[a-z]/.test(password)) strength += 10;
+            if (/[0-9]/.test(password)) strength += 10;
+            if (/[^A-Za-z0-9]/.test(password)) strength += 15;
+            
+            // Deductions for poor practices
+            if (/^[a-zA-Z]+$/.test(password)) strength -= 15;
+            if (/^[0-9]+$/.test(password)) strength -= 15;
+            
+            return Math.max(0, Math.min(100, strength));
+        }
+        
+        function updatePasswordStrength(password) {
+            const strength = calculatePasswordStrength(password);
+            const strengthMeter = document.getElementById('strengthMeter');
+            const strengthResult = document.getElementById('strengthResult');
+            const hackingDuration = document.getElementById('hackingDuration');
+            
+            // Update strength meter
+            strengthMeter.classList.remove('d-none');
+            if (strength < 30) {
+                strengthMeter.className = 'strength-weak';
+                strengthResult.textContent = 'كلمة مرور ضعيفة: حاول إضافة المزيد من الأحرف أو الأرقام أو الرموز.';
+            } else if (strength < 60) {
+                strengthMeter.className = 'strength-fair';
+                strengthResult.textContent = 'كلمة مرور متوسطة: يمكن أن تكون أقوى مع المزيد من التنوع.';
+            } else if (strength < 80) {
+                strengthMeter.className = 'strength-good';
+                strengthResult.textContent = 'كلمة مرور جيدة: توفر أمانًا لائقًا.';
+            } else {
+                strengthMeter.className = 'strength-strong';
+                strengthResult.textContent = 'كلمة مرور قوية: أمان ممتاز!';
+            }
+            
+            // Estimate hacking duration (very rough estimation)
+            const entropy = Math.log2(Math.pow(94, password.length));
+            let duration;
+            
+            if (entropy < 40) {
+                duration = 'أقل من ثانية';
+            } else if (entropy < 64) {
+                duration = 'عدة دقائق إلى ساعات';
+            } else if (entropy < 80) {
+                duration = 'أيام إلى أسابيع';
+            } else if (entropy < 100) {
+                duration = 'سنوات إلى عقود';
+            } else if (entropy < 128) {
+                duration = 'قرون إلى آلاف السنين';
+            } else {
+                duration = 'أطول من عمر الكون';
+            }
+            
+            hackingDuration.textContent = `الوقت المقدر للاختراق: ${duration} (بناءً على هجوم القوة الغاشمة)`;
+        }
+    </script>
+</body>
+</html>
